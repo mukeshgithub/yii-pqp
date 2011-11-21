@@ -1,111 +1,3 @@
-<!-- JavaScript -->
-<script type="text/javascript">
-	var PQP_DETAILS = true;
-	var PQP_HEIGHT = "short";
-
-	addEvent(window, 'load', function(){
-		document.getElementById("pqp-container").style.display = "block";
-	});
-
-	function changeTab(tab) {
-		var pQp = document.getElementById('pQp');
-		hideAllTabs();
-		addClassName(pQp, tab, true);
-	}
-
-	function hideAllTabs() {
-		var pQp = document.getElementById('pQp');
-		removeClassName(pQp, 'console');
-		removeClassName(pQp, 'speed');
-		removeClassName(pQp, 'queries');
-		removeClassName(pQp, 'memory');
-		removeClassName(pQp, 'files');
-	}
-
-	function toggleDetails(){
-		var container = document.getElementById('pqp-container');
-
-		if(PQP_DETAILS){
-			addClassName(container, 'hideDetails', true);
-			PQP_DETAILS = false;
-		}
-		else{
-			removeClassName(container, 'hideDetails');
-			PQP_DETAILS = true;
-		}
-	}
-	function toggleHeight(){
-		var container = document.getElementById('pqp-container');
-
-		if(PQP_HEIGHT == "short"){
-			addClassName(container, 'tallDetails', true);
-			PQP_HEIGHT = "tall";
-		}
-		else{
-			removeClassName(container, 'tallDetails');
-			PQP_HEIGHT = "short";
-		}
-	}
-
-	/*function loadCSS() {
-		var sheet = document.createElement("link");
-		sheet.setAttribute("rel", "stylesheet");
-		sheet.setAttribute("type", "text/css");
-		sheet.setAttribute("href", "/pqp/css/pQp.css");
-		document.getElementsByTagName("head")[0].appendChild(sheet);
-		setTimeout(function(){document.getElementById("pqp-container").style.display = "block"}, 10);
-	}*/
-
-
-	//http://www.bigbold.com/snippets/posts/show/2630
-	function addClassName(objElement, strClass, blnMayAlreadyExist){
-	   if ( objElement.className ){
-	      var arrList = objElement.className.split(' ');
-	      if ( blnMayAlreadyExist ){
-	         var strClassUpper = strClass.toUpperCase();
-	         for ( var i = 0; i < arrList.length; i++ ){
-	            if ( arrList[i].toUpperCase() == strClassUpper ){
-	               arrList.splice(i, 1);
-	               i--;
-	             }
-	           }
-	      }
-	      arrList[arrList.length] = strClass;
-	      objElement.className = arrList.join(' ');
-	   }
-	   else{
-	      objElement.className = strClass;
-	      }
-	}
-
-	//http://www.bigbold.com/snippets/posts/show/2630
-	function removeClassName(objElement, strClass){
-	   if ( objElement.className ){
-	      var arrList = objElement.className.split(' ');
-	      var strClassUpper = strClass.toUpperCase();
-	      for ( var i = 0; i < arrList.length; i++ ){
-	         if ( arrList[i].toUpperCase() == strClassUpper ){
-	            arrList.splice(i, 1);
-	            i--;
-	         }
-	      }
-	      objElement.className = arrList.join(' ');
-	   }
-	}
-
-	//http://ejohn.org/projects/flexible-javascript-events/
-	function addEvent( obj, type, fn ) {
-	  if ( obj.attachEvent ) {
-	    obj["e"+type+fn] = fn;
-	    obj[type+fn] = function() { obj["e"+type+fn]( window.event ) };
-	    obj.attachEvent( "on"+type, obj[type+fn] );
-	  }
-	  else{
-	    obj.addEventListener( type, fn, false );
-	  }
-	}
-</script>
-
 <div id="pqp-container" class="pQp" style="display:none">
 <div id="pQp" class="console">
 	<table id="pqp-metrics" cellspacing="0">
@@ -155,9 +47,9 @@
 							<?php if($log['type'] == 'log' || $log['type'] == 'error'): ?>
 								<div><?php echo nl2br($log['data']); ?></div>
 							<?php elseif($log['type'] == 'memory'): ?>
-								<div><?php echo $log['data']; ?> <em><?php echo $log['dataType']; ?></em>: <?php echo nl2br($log['name']); ?> </div>
+								<div><b><?php echo $log['data']; ?></b> <em><?php echo $log['dataType']; ?></em>: <?php echo nl2br($log['name']); ?> </div>
 							<?php elseif($log['type'] == 'speed'): ?>
-								<div><?php echo $log['data']; ?> <em><?php echo $log['name']; ?></em></div>
+								<div><b><?php echo $log['data']; ?></b> <em><?php echo $log['name']; ?></em></div>
 							<?php elseif($log['type'] == 'error'): ?>
 								<div><em>Line <?php echo $log['line']; ?></em> : <?php echo $log['data']; ?> <pre><?php echo $log['file']; ?></pre></div>
 							<?php endif; ?>
@@ -169,13 +61,13 @@
 	</div>
 
 	<div id="pqp-speed" class="pqp-box">
+		<table class='side' cellspacing='0'>
+			<tr><td><var><?php echo $speedTotals['total']; ?></var><h4>Load Time</h4></td></tr>
+			<tr><td class='alt'><var><?php echo $speedTotals['allowed']; ?> s</var> <h4>Max Execution Time</h4></td></tr>
+		</table>
 		<?php if(count($profile) == 0): ?>
 			<h3>This panel has no log items.</h3>
 		<?php else: ?>
-			<table class='side' cellspacing='0'>
-				<tr><td><var><?php echo $speedTotals['total']; ?></var><h4>Load Time</h4></td></tr>
-				<tr><td class='alt'><var><?php echo $speedTotals['allowed']; ?> s</var> <h4>Max Execution Time</h4></td></tr>
-			</table>
 
 			<table class='main' cellspacing='0'>
 			<?php foreach($profile as $i => $log):?>
@@ -188,14 +80,14 @@
 	</div>
 
 	<div id='pqp-queries' class='pqp-box'>
+		<table class='side' cellspacing='0'>
+		<tr><td><var><?php echo $queryTotals['count']; ?></var><h4>Total Queries</h4></td></tr>
+		<tr><td class='alt'><var><?php echo $this->getReadableTime($queryTotals['time']); ?></var> <h4>Total Time</h4></td></tr>
+		<tr><td><var><?php echo $queryTotals['duplicates']; ?></var> <h4>Duplicates</h4></td></tr>
+		</table>
 		<?php if($queryTotals['count'] == 0): ?>
 			<h3>This panel has no log items.</h3>
 		<?php else: ?>
-			<table class='side' cellspacing='0'>
-			<tr><td><var><?php echo $queryTotals['count']; ?></var><h4>Total Queries</h4></td></tr>
-			<tr><td class='alt'><var><?php echo $this->getReadableTime($queryTotals['time']); ?></var> <h4>Total Time</h4></td></tr>
-			<tr><td><var><?php echo $queryTotals['duplicates']; ?></var> <h4>Duplicates</h4></td></tr>
-			</table>
 
 				<table class='main' cellspacing='0'>
 					<?php foreach($queries as $i => $query):?>
@@ -217,21 +109,19 @@
 	</div>
 
 	<div id="pqp-memory" class="pqp-box">
+		<table class='side' cellspacing='0'>
+			<tr><td><var><?php echo $memoryTotals['used']; ?></var><h4>Used Memory</h4></td></tr>
+			<tr><td class='alt'><var><?php echo $memoryTotals['total']; ?></var> <h4>Total Available</h4></td></tr>
+		</table>
 		<?php if($logs['memoryCount'] == 0): ?>
 			<h3>This panel has no log items.</h3>
 		<?php else: ?>
-			<table class='side' cellspacing='0'>
-				<tr><td><var><?php echo $memoryTotals['used']; ?></var><h4>Used Memory</h4></td></tr>
-				<tr><td class='alt'><var><?php echo $memoryTotals['total']; ?></var> <h4>Total Available</h4></td></tr>
-			</table>
 
 			<table class='main' cellspacing='0'>
-			<?php foreach($logs['console'] as $i => $log):?>
-				<?php if($log['type'] == 'memory'): ?>
+			<?php foreach($memory as $i => $log):?>
 					<tr class='log-<?php echo $log['type']; ?>'>
 						<td class="<?php echo $i%2 == 0 ? '':'alt'; ?>"><b><?php echo $log['data']; ?></b> <em><?php echo $log['dataType']; ?></em>: <?php echo nl2br($log['name']); ?></td>
 					</tr>
-				<?php endif; ?>
 			<?php endforeach; ?>
 			</table>
 		<?php endif; ?>
