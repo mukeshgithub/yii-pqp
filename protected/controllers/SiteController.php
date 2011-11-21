@@ -8,16 +8,16 @@ class SiteController extends Controller
 	public function actions()
 	{
 		return array(
-			// captcha action renders the CAPTCHA image displayed on the contact page
+		// captcha action renders the CAPTCHA image displayed on the contact page
 			'captcha'=>array(
 				'class'=>'CCaptchaAction',
 				'backColor'=>0xFFFFFF,
-			),
-			// page action renders "static" pages stored under 'protected/views/site/pages'
-			// They can be accessed via: index.php?r=site/page&view=FileName
+		),
+		// page action renders "static" pages stored under 'protected/views/site/pages'
+		// They can be accessed via: index.php?r=site/page&view=FileName
 			'page'=>array(
 				'class'=>'CViewAction',
-			),
+		),
 		);
 	}
 
@@ -27,8 +27,26 @@ class SiteController extends Controller
 	 */
 	public function actionIndex()
 	{
+		PQPLogRoute::logMemory("memory used after action call");
+		try {
+			Yii::beginProfile('Execution time');
+			Yii::log('Begin logging data');
+			PQPLogRoute::logMemory($this, "the site controller");
+			$arr = array('Name' => 'Ryan', 'Last' => 'Campbell');
+			Yii::log(CVarDumper::dumpAsString($arr));
+			PQPLogRoute::logMemory($arr, "Normal array");
+			$users = User::model()->findAll();
+			PQPLogRoute::logMemory($users, "Users array");
+
+			Yii::endProfile('Execution time');
+			throw new Exception('Unable to write to log!');
+		}
+		catch(Exception $e) {
+			Yii::log($e, CLogger::LEVEL_ERROR);
+		}
 		// renders the view file 'protected/views/site/index.php'
 		// using the default layout 'protected/views/layouts/main.php'
+		PQPLogRoute::logMemory("memory used before render");
 		$this->render('index');
 	}
 
@@ -37,13 +55,13 @@ class SiteController extends Controller
 	 */
 	public function actionError()
 	{
-	    if($error=Yii::app()->errorHandler->error)
-	    {
-	    	if(Yii::app()->request->isAjaxRequest)
-	    		echo $error['message'];
-	    	else
-	        	$this->render('error', $error);
-	    }
+		if($error=Yii::app()->errorHandler->error)
+		{
+			if(Yii::app()->request->isAjaxRequest)
+			echo $error['message'];
+			else
+			$this->render('error', $error);
+		}
 	}
 
 	/**
@@ -86,7 +104,7 @@ class SiteController extends Controller
 			$model->attributes=$_POST['LoginForm'];
 			// validate user input and redirect to the previous page if valid
 			if($model->validate() && $model->login())
-				$this->redirect(Yii::app()->user->returnUrl);
+			$this->redirect(Yii::app()->user->returnUrl);
 		}
 		// display the login form
 		$this->render('login',array('model'=>$model));

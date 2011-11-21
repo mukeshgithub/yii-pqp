@@ -42,6 +42,7 @@ class PQPLogRoute extends CWebLogRoute{
 	protected $stack=array();
 	protected $speed=array();
 	protected $db=array();
+	protected $memory=array();
 	/**
 	 * @var boolean whether to aggregate results according to profiling tokens.
 	 * If false, the results will be aggregated by categories.
@@ -67,13 +68,13 @@ class PQPLogRoute extends CWebLogRoute{
 			'speedTotals' => array(),
 	);
 
+
 	public function init(){
-		$url = Yii::app()->assetManager->publish(dirname(__FILE__).DIRECTORY_SEPARATOR.'resources');
-		Yii::app()->clientScript->registerCssFile($url."/css/pQp.css");
+		$url = Yii::app()->assetManager->publish(dirname(__FILE__).'/assets');
+		Yii::app()->clientScript->registerCssFile($url."/css/pqp.css");
+		Yii::app()->clientScript->registerScriptFile($url."/js/pqp.js");
 		$this->levels = 'error, trace, info, profile, warning, memory';//PQP displays all levels
-		if($this->categories == ''){
-			$this->categories .= 'system.db.*';
-		}elseif(strpos($this->categories, 'system.db') === false){
+		if($this->categories != '' && strpos($this->categories, 'system.db') === false){
 			$this->categories .= ', system.db.*';
 		}
 	}
@@ -118,10 +119,6 @@ class PQPLogRoute extends CWebLogRoute{
 
 		}
 
-		/*$func=create_function('$a,$b','return $a[4]<$b[4]?1:0;');
-		 usort($memoryResults,$func);//sort by memory used
-		 */
-
 		$this->entries['memoryTotals']['total'] = ini_get("memory_limit");
 		$this->entries['memoryTotals']['used'] = $this->getReadableFileSize(Yii::getLogger()->getMemoryUsage());
 		$this->entries['speedTotals']['total'] = $this->getReadableTime(Yii::getLogger()->getExecutionTime());
@@ -131,15 +128,19 @@ class PQPLogRoute extends CWebLogRoute{
 
 		$this->emptyStack($this->speed);
 		$this->emptyStack($this->db);
-		
+
 		$speed=array_values($this->speed);
 		$db=array_values($this->db);
+
 		$func=create_function('$a,$b','return $a[4]<$b[4]?1:0;');
 		usort($speed,$func);
 		usort($db,$func);
+		$func=create_function('$a,$b','return $a["rawdata"]<$b["rawdata"]?1:0;');
+		usort($this->memory,$func);
 
 		$this->entries['profile'] = $speed;
 		$this->entries['queries'] = $db;
+		$this->entries['memory'] = $this->memory;
 
 
 		$this->render('pqp',$this->entries);
@@ -165,21 +166,33 @@ class PQPLogRoute extends CWebLogRoute{
 		if($message[0] == '[')
 		{
 			$pos = strpos($message, ']');
-			$memory = substr(substr($message,1), 0, $pos);
+			$memory = substr(substr($message,1), 0, $pos-1);
 			$message = substr($message,$pos+1);
+			if($message[0] == '['){
+				$pos = strpos($message, ']');
+				$dataType = substr(substr($message,1), 0, $pos-1);
+				$message = substr($message,$pos+1);
+			}
 			$this->entries['logs']['memoryCount']++;
-			$this->entries['logs']['console'][] = array(
+			$data = array(
 							'type' => 'memory',
 							'data' => $this->getReadableFileSize($memory),
 							'name' => $message,
-							'dataType' => 'string',//@TODO find how to log diferent types
+							'dataType' => $dataType,
+							'rawdata' => $memory,
 			);
+			$this->entries['logs']['console'][] = $data;
+			$this->memory[] = $data;
 		}
 	}
 	protected function processInfoLog($log){
 	}
 	protected function processErrorLog($log){
 		list($message, $level, $category, $timestamp) = $log;
+
+		if($message instanceof Exception){
+			$message = $message->getMessage();
+		}
 		$this->entries['logs']['console'][] = array(
 			'type' => 'error',
 			'data' => $message,
@@ -187,11 +200,12 @@ class PQPLogRoute extends CWebLogRoute{
 		$this->entries['logs']['errorCount']++;
 	}
 	protected function processTraceLog($log){
-		
+
 		if($this->ignoreDbTraces && strpos($log[2], 'system.db') !== false){
 			return;
 		}
 		list($message, $level, $category, $timestamp) = $log;
+
 		$this->entries['logs']['console'][] = array(
 			'type' => 'log',
 			'data' => $message,
@@ -242,12 +256,12 @@ class PQPLogRoute extends CWebLogRoute{
 				}
 				$logqueue[$token]= $result;
 
-				//$average = $logqueue[$token][4]/$logqueue[$token][1];
-				/*$this->entries['logs']['console'][] = array(
+				$average = $logqueue[$token][4]/$logqueue[$token][1];
+				$this->entries['logs']['console'][] = array(
 					'type' => 'speed',
 					'name' => $token,
 					'data' => $this->getReadableTime($average),
-					);*/
+				);
 
 			}
 			else{
@@ -259,8 +273,8 @@ class PQPLogRoute extends CWebLogRoute{
 				'type' => 'speed',
 				'name' => $message,
 				'data' => $this->getReadableTime($average),
-			);
-			$this->entries['logs']['speedCount']++;*/
+				);
+				$this->entries['logs']['speedCount']++;*/
 		}
 
 
@@ -378,13 +392,20 @@ class PQPLogRoute extends CWebLogRoute{
 		return $ret;
 	}
 
-	public static function logMemory($msg, $category='application'){
-		if(is_string($msg)){
+	/**
+	 *
+	 * @param mixed $obj any type of variable to profile memory
+	 * @param string $msg message to be logged
+	 * @param string  $category category of the message (e.g. 'system.web'). It is case-insensitive.
+	 */
+	public static function logMemory($obj, $msg = '', $category='application'){
+		if(is_string($obj)){
 			$memory = Yii::getLogger()->getMemoryUsage();
-			Yii::log("[{$memory}]".$msg, 'memory', $category);
+			$msg = $obj;
 		}else{
-			$memory = strlen(serialize($msg));
-			Yii::log("[{$memory}]".gettype($msg), 'memory', $category);
+			$memory = strlen(serialize($obj));
 		}
+		$type = gettype($obj);
+		Yii::log("[{$memory}][$type] $msg", 'memory', $category);
 	}
 }
