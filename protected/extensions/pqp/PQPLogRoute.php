@@ -1,40 +1,15 @@
 <?php
 /**
- * CProfileLogRoute class file.
- *
- * @author Qiang Xue <qiang.xue@gmail.com>
- * @link http://www.yiiframework.com/
- * @copyright Copyright &copy; 2008-2010 Yii Software LLC
- * @license http://www.yiiframework.com/license/
- */
-
-/**
- * CProfileLogRoute displays the profiling results in Web page.
- *
- * The profiling is done by calling {@link YiiBase::beginProfile()} and {@link YiiBase::endProfile()},
- * which marks the begin and end of a code block.
- *
- * CProfileLogRoute supports two types of report by setting the {@link setReport report} property:
- * <ul>
- * <li>summary: list the execution time of every marked code block</li>
- * <li>callstack: list the mark code blocks in a hierarchical view reflecting their calling sequence.</li>
- * </ul>
- *
- * @author Qiang Xue <qiang.xue@gmail.com>
- * @version $Id: CProfileLogRoute.php 1678 2010-01-07 21:02:00Z qiang.xue $
- * @package system.logging
- * @since 1.0
- */
-require_once('classes/PhpQuickProfiler.php');
-/**
  * PQPLogRoute displays the log results in Web page.
  *
- * The profiling is done by calling {@link YiiBase::beginProfile()} and {@link YiiBase::endProfile()},
- * which marks the begin and end of a code block.
+ * PQPLogRoute is a Yii LogRoute that displays log entries in a fancy way
+ * using the styles from PHP Quick Profiler by http://particletree.com/
+ *
+ * The memory profiling is done by calling {@link logMemory()}.
  *
  * @author AsgarothBelem <asgaroth[dot]belem[at]gmail[dot]com>
  * @version 0.1
- * @since 13/02/2011
+ * @see http://particletree.com/features/php-quick-profiler/
  */
 class PQPLogRoute extends CWebLogRoute{
 
@@ -185,8 +160,7 @@ class PQPLogRoute extends CWebLogRoute{
 			$this->memory[] = $data;
 		}
 	}
-	protected function processInfoLog($log){
-	}
+
 	protected function processErrorLog($log){
 		list($message, $level, $category, $timestamp) = $log;
 
@@ -199,6 +173,7 @@ class PQPLogRoute extends CWebLogRoute{
 		);
 		$this->entries['logs']['errorCount']++;
 	}
+
 	protected function processTraceLog($log){
 
 		if($this->ignoreDbTraces && strpos($log[2], 'system.db') !== false){
@@ -212,11 +187,8 @@ class PQPLogRoute extends CWebLogRoute{
 		);
 		$this->entries['logs']['logCount']++;
 	}
-	protected function processWarningLog(){
-	}
 
 	protected function processProfileLog($log){
-		//list($message, $level, $category, $timestamp) = $log;
 		$average = 0;
 		$message=$log[0];
 		if(!strncasecmp($message,'begin:',6))
@@ -268,23 +240,8 @@ class PQPLogRoute extends CWebLogRoute{
 				throw new CException(Yii::t('yii','CProfileLogRoute found a mismatching code block "{token}" and "{last}". Make sure the calls to Yii::beginProfile() and Yii::endProfile() be properly nested.',
 				array('{token}'=>$token, '{last}' => $last[0])));
 			}
-		}else{
-			/*$this->entries['logs']['console'][] = array(
-				'type' => 'speed',
-				'name' => $message,
-				'data' => $this->getReadableTime($average),
-				);
-				$this->entries['logs']['speedCount']++;*/
 		}
 
-
-
-		//		list($message, $level, $category, $timestamp) = $log;
-		//		$this->entries['logs']['console'][] = array(
-		//			'type' => 'speed',
-		//			'name' => $message,
-		//			'data' => $delta,
-		//		);
 	}
 
 	/**
