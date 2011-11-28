@@ -350,7 +350,7 @@ class PQPLogRoute extends CWebLogRoute{
 	}
 
 	/**
-	 *
+	 * Logs a memory message.
 	 * @param mixed $obj any type of variable to profile memory
 	 * @param string $msg message to be logged
 	 * @param string  $category category of the message (e.g. 'system.web'). It is case-insensitive.
